@@ -1,17 +1,5 @@
 open Common
 
-let unsigned_int = 0b000
-let negative_int = 0b001
-let byte_string = 0b010
-let text_string = 0b011
-let array = 0b100
-let map = 0b101
-let tag = 0b110
-let simple_values = 0b111
-let next_1 = 0b11000
-let next_2 = 0b11001
-let next_3 = 0b11010
-let next_4 = 0b11011
 let ( $ ) f x = f x
 
 let encode_header maj min =
@@ -31,8 +19,8 @@ let encode_int maj i =
         (2, next_1, fun buf i v -> Bytes.set buf i (char_of_int v))
     | v when v <= 0xff_ff -> (3, next_2, Bytes.set_uint16_be)
     | v when v <= 0xffff_ffff ->
-        (5, next_3, fun buf i v -> Bytes.set_int32_be buf i (Int32.of_int v))
-    | v -> (9, next_4, fun buf i v -> Bytes.set_int64_be buf i (Int64.of_int v))
+        (5, next_4, fun buf i v -> Bytes.set_int32_be buf i (Int32.of_int v))
+    | v -> (9, next_8, fun buf i v -> Bytes.set_int64_be buf i (Int64.of_int v))
   in
   let buf = Bytes.create size in
   Bytes.set buf 0 (char_of_int $ encode_header maj min);
@@ -54,7 +42,13 @@ let rec encode_map map encode buf =
   match map with
   | [] -> buf
   | (key, v) :: t ->
-      Bytes.cat buf (encode key) |> Bytes.cat (encode v) |> encode_map t encode
+      Bytes.cat (encode $ TextString key) (encode v)
+      |> Bytes.cat buf |> encode_map t encode
+
+let sort_map_key a b =
+  let la = String.length a in
+  let lb = String.length b in
+  if la = lb then String.compare a b else compare la lb
 
 let rec encode data =
   match data with
@@ -62,5 +56,11 @@ let rec encode data =
   | ByteString b -> encode_byte_string byte_string b
   | TextString b -> encode_text_string b
   | Array a -> encode_int array $ List.length a |> encode_array a encode
-  | Map m -> encode_int map $ List.length m |> encode_map m encode
+  | Map m ->
+      encode_int map $ List.length m
+      |> encode_map
+           (List.sort (fun (k1, _) (k2, _) -> sort_map_key k1 k2) m)
+           encode
+  | Bool b -> Bytes.init 1 (fun _ -> char_of_int $ if b then 0xf5 else 0xf4)
+  | Null -> Bytes.init 1 (fun _ -> char_of_int 0xf6)
   | v -> raise (UnsupportedOperation v)
