@@ -31,11 +31,9 @@ let encode_header maj min =
   | v when v < 0b11111 -> (maj lsl 5) + min
   | _ -> raise (Overflow min)
 
-let encode_int i =
+let encode_int maj i =
   let maj, i =
-    match i with
-    | i when i >= 0 -> (unsigned_int, i)
-    | i -> (negative_int, (i * -1) - 1)
+    match i with i when i >= 0 -> (maj, i) | i -> (negative_int, (i * -1) - 1)
   in
   let size, min, fn =
     match i with
@@ -52,10 +50,11 @@ let encode_int i =
   fn buf 1 i;
   buf
 
-let encode_byte_string data = Bytes.cat (encode_int $ Bytes.length data) data
+let encode_byte_string maj data =
+  Bytes.cat (encode_int maj $ Bytes.length data) data
 
 let encode_text_string data =
-  encode_int $ String.length data |> Bytes.cat (Bytes.of_string data)
+  encode_byte_string text_string $ Bytes.of_string data
 
 let rec encode_array a encode buf =
   match a with
@@ -70,9 +69,9 @@ let rec encode_map map encode buf =
 
 let rec encode data =
   match data with
-  | Int v -> encode_int v
-  | ByteString b -> encode_byte_string b
+  | Int v -> encode_int unsigned_int v
+  | ByteString b -> encode_byte_string byte_string b
   | TextString b -> encode_text_string b
-  | Array a -> encode_int $ List.length a |> encode_array a encode
-  | Map map -> encode_int $ List.length map |> encode_map map encode
+  | Array a -> encode_int array $ List.length a |> encode_array a encode
+  | Map m -> encode_int map $ List.length m |> encode_map m encode
   | v -> raise (UnsupportedOperation v)
