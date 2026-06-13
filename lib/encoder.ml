@@ -45,8 +45,18 @@ let encode_int maj i =
   fn buf 1 i;
   buf
 
+let encode_byte_string data =
+  Bytes.cat (encode_int unsigned_int (Bytes.length data)) data
+
+let encode_text_string data =
+  Bytes.cat
+    (encode_int unsigned_int (String.length data))
+    (Bytes.of_string data)
+
 let rec encode data =
   match data with
   | Int v when v >= 0 -> encode_int unsigned_int v
   | Int v when v < 0 -> encode_int negative_int ((v * -1) - 1)
+  | ByteString b -> encode_byte_string b
+  | TextString b -> encode_text_string b
   | v -> raise (UnsupportedOperation v)
