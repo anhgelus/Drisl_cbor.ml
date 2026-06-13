@@ -1,14 +1,4 @@
-type cbor =
-  | Int of int
-  | ByteString of bytes
-  | TextString of string
-  | Array of cbor list
-  | Map of (cbor * cbor) list
-  | Tag of { tag : int; content : cbor }
-  | SimpleValues of bool ref
-
-exception UnsupportedOperation of cbor
-exception Overflow of int
+open Common
 
 let unsigned_int = 0b000
 let negative_int = 0b001
@@ -22,7 +12,6 @@ let next_1 = 0b11000
 let next_2 = 0b11001
 let next_3 = 0b11010
 let next_4 = 0b11011
-let ( |> ) x f = f x
 let ( $ ) f x = f x
 
 let encode_header maj min =
