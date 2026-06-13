@@ -1,0 +1,4 @@
+(executable
+ (public_name cbor)
+ (name main)
+ (libraries cbor))
