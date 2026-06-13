@@ -22,6 +22,8 @@ let next_1 = 0b11000
 let next_2 = 0b11001
 let next_3 = 0b11010
 let next_4 = 0b11011
+let ( |> ) x f = f x
+let ( $ ) f x = f x
 
 let encode_header maj min =
   if maj > 0b111 then raise (Overflow maj);
@@ -29,7 +31,12 @@ let encode_header maj min =
   | v when v < 0b11111 -> (maj lsl 5) + min
   | _ -> raise (Overflow min)
 
-let encode_int maj i =
+let encode_int i =
+  let maj, i =
+    match i with
+    | i when i >= 0 -> (unsigned_int, i)
+    | i -> (negative_int, (i * -1) - 1)
+  in
   let size, min, fn =
     match i with
     | v when v <= 23 -> (1, v, fun _ _ _ -> ())
@@ -41,28 +48,31 @@ let encode_int maj i =
     | v -> (9, next_4, fun buf i v -> Bytes.set_int64_be buf i (Int64.of_int v))
   in
   let buf = Bytes.create size in
-  Bytes.set buf 0 (char_of_int (encode_header maj min));
+  Bytes.set buf 0 (char_of_int $ encode_header maj min);
   fn buf 1 i;
   buf
 
-let encode_byte_string data =
-  Bytes.cat (encode_int unsigned_int (Bytes.length data)) data
+let encode_byte_string data = Bytes.cat (encode_int $ Bytes.length data) data
 
 let encode_text_string data =
-  Bytes.cat
-    (encode_int unsigned_int (String.length data))
-    (Bytes.of_string data)
+  encode_int $ String.length data |> Bytes.cat (Bytes.of_string data)
 
-let rec encode_array a buf encode =
+let rec encode_array a encode buf =
   match a with
   | [] -> buf
-  | h :: t -> encode_array t (Bytes.cat buf (encode h)) encode
+  | h :: t -> Bytes.cat buf (encode h) |> encode_array t encode
+
+let rec encode_map map encode buf =
+  match map with
+  | [] -> buf
+  | (key, v) :: t ->
+      Bytes.cat buf (encode key) |> Bytes.cat (encode v) |> encode_map t encode
 
 let rec encode data =
   match data with
-  | Int v when v >= 0 -> encode_int unsigned_int v
-  | Int v when v < 0 -> encode_int negative_int ((v * -1) - 1)
+  | Int v -> encode_int v
   | ByteString b -> encode_byte_string b
   | TextString b -> encode_text_string b
-  | Array a -> encode_array a (encode_int unsigned_int (List.length a)) encode
+  | Array a -> encode_int $ List.length a |> encode_array a encode
+  | Map map -> encode_int $ List.length map |> encode_map map encode
   | v -> raise (UnsupportedOperation v)
