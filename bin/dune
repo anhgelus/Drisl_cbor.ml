@@ -1,4 +1,4 @@
 (executable
- (public_name cbor)
+ (public_name drisl_cbor)
  (name main)
- (libraries cbor))
+ (libraries drisl_cbor))

@@ -1,4 +1,4 @@
-open Cbor
+open Drisl_cbor
 
 let ( $ ) f x = f x
 

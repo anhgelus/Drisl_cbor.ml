@@ -1,6 +1,6 @@
 (lang dune 3.23)
 
-(name cbor)
+(name drisl_cbor)
 
 (generate_opam_files true)
 
@@ -16,7 +16,7 @@
 (documentation https://url/to/documentation)
 
 (package
- (name cbor)
+ (name drisl_cbor)
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends ocaml)
