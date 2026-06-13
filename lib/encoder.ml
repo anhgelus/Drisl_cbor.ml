@@ -53,10 +53,16 @@ let encode_text_string data =
     (encode_int unsigned_int (String.length data))
     (Bytes.of_string data)
 
+let rec encode_array a buf encode =
+  match a with
+  | [] -> buf
+  | h :: t -> encode_array t (Bytes.cat buf (encode h)) encode
+
 let rec encode data =
   match data with
   | Int v when v >= 0 -> encode_int unsigned_int v
   | Int v when v < 0 -> encode_int negative_int ((v * -1) - 1)
   | ByteString b -> encode_byte_string b
   | TextString b -> encode_text_string b
+  | Array a -> encode_array a (encode_int unsigned_int (List.length a)) encode
   | v -> raise (UnsupportedOperation v)
