@@ -42,25 +42,20 @@ let rec encode_map map encode buf =
   match map with
   | [] -> buf
   | (key, v) :: t ->
-      Bytes.cat (encode $ TextString key) (encode v)
+      Bytes.cat (encode $ `TextString key) (encode v)
       |> Bytes.cat buf |> encode_map t encode
-
-let sort_map_key a b =
-  let la = String.length a in
-  let lb = String.length b in
-  if la = lb then String.compare a b else compare la lb
 
 let rec encode data =
   match data with
-  | Int v -> encode_int unsigned_int v
-  | ByteString b -> encode_byte_string byte_string b
-  | TextString b -> encode_text_string b
-  | Array a -> encode_int array $ List.length a |> encode_array a encode
-  | Map m ->
-      encode_int map $ List.length m
+  | `Int v -> encode_int unsigned_int v
+  | `ByteString b -> encode_byte_string byte_string b
+  | `TextString b -> encode_text_string b
+  | `Array a -> encode_int array $ List.length a |> encode_array a encode
+  | `Map m ->
+      let l = StringMap.to_list m in
+      encode_int map $ List.length l
       |> encode_map
-           (List.sort (fun (k1, _) (k2, _) -> sort_map_key k1 k2) m)
+           (List.sort (fun (k1, _) (k2, _) -> sort_map_key k1 k2) l)
            encode
-  | Bool b -> Bytes.init 1 (fun _ -> char_of_int $ if b then 0xf5 else 0xf4)
-  | Null -> Bytes.init 1 (fun _ -> char_of_int 0xf6)
-  | v -> raise (UnsupportedOperation v)
+  | `Bool b -> Bytes.init 1 (fun _ -> char_of_int $ if b then 0xf5 else 0xf4)
+  | `Null -> Bytes.init 1 (fun _ -> char_of_int 0xf6)

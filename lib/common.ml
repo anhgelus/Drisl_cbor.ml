@@ -1,16 +1,16 @@
+module StringMap = Map.Make (String)
+
 type t =
-  | Int of int
-  | ByteString of bytes
-  | TextString of string
-  | Array of t list
-  | Map of (string * t) list
-  | Bool of bool
-  | Null
+  [ `Int of int
+  | `ByteString of bytes
+  | `TextString of string
+  | `Array of t list
+  | `Map of t StringMap.t
+  | `Bool of bool
+  | `Null ]
 
 exception UnsupportedOperation of t
 exception Overflow of int
-
-module StringMap = Map.Make (String)
 
 let unsigned_int = 0b000
 let negative_int = 0b001
@@ -24,4 +24,8 @@ let next_1 = 0b11000
 let next_2 = 0b11001
 let next_4 = 0b11010
 let next_8 = 0b11011
-let of_map m = Map (StringMap.to_list m)
+
+let sort_map_key a b =
+  let la = String.length a in
+  let lb = String.length b in
+  if la = lb then String.compare a b else compare la lb
