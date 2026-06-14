@@ -5,22 +5,20 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github anhgelus/Drisl_cbor.ml))
 
 (authors "Author William Hergès <anhgelus.morhtuuzh@proton.me>") 
 
 (maintainers "Maintainer William Hergès <anhgelus.morhtuuzh@proton.me>")
 
-(license LICENSE)
+(license MPL-2.0)
 
 (documentation https://url/to/documentation)
 
 (package
  (name drisl_cbor)
- (synopsis "A short synopsis")
- (description "A longer description")
+ (synopsis "Encode and decode DRISL-CBOR")
+ (description "Lightweight DRISL-CBOR library. (Do not support tags and CID yet.)")
  (depends ocaml)
  (tags
-  ("add topics" "to describe" your project)))
-
-; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
+  ("cbor" "ipfs" "dasl" "drisl" "cbor-library", "atproto")))
