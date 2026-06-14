@@ -20,7 +20,11 @@ let do_test a b =
       (Printf.sprintf "%s %s" (bytes_to_string exp) (bytes_to_string res));
   match decode exp with
   | Ok (v, s) when v = b && Seq.is_empty s -> ()
-  | Ok (v, s) when v = b -> failwith "rest is not empty"
+  | Ok (v, s) when v = b ->
+      failwith
+        (Printf.sprintf "rest is not empty for %s: rest %s"
+           (bytes_to_string exp)
+           (bytes_to_string $ Bytes.of_seq s))
   | Ok (v, s) ->
       failwith
         (Printf.sprintf "cannot decode %s (rest: %s) into %s, got %s"
