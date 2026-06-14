@@ -1,6 +1,7 @@
 open Common
 
 let ( $ ) f x = f x
+let ( >>= ) = Result.( >>= )
 
 let header c =
   ((int_of_char c land 0b111_00000) lsr 5, int_of_char c land 0b000_11111)
@@ -15,7 +16,7 @@ let rec first_of n acc seq =
 
 let decode_unsigned_int min seq =
   match min with
-  | v when v <= 23 -> Ok (`Int v, seq)
+  | v when v <= 23 -> Result.return (`Int v, seq)
   | v when v = next_1 -> (
       match Seq.uncons seq with
       | Some (head, tail) -> Ok (`Int (int_of_char head), tail)
@@ -82,19 +83,15 @@ let rec decode b =
   | Some (head, tail) -> (
       match header head with
       | maj, min when maj = unsigned_int -> decode_unsigned_int min tail
-      | maj, min when maj = negative_int -> (
-          match decode_unsigned_int min tail with
-          | Ok (`Int i, tail) -> Ok (`Int ((i * -1) - 1), tail)
-          | Error s -> Error s)
-      | maj, min when maj = byte_string -> (
-          match decode_bytes min tail with
-          | Ok (l, tail) -> Ok (`ByteString (Bytes.of_seq (List.to_seq l)), tail)
-          | Error s -> Error s)
-      | maj, min when maj = text_string -> (
-          match decode_bytes min tail with
-          | Ok (l, tail) ->
-              Ok (`TextString (String.of_seq (List.to_seq l)), tail)
-          | Error s -> Error s)
+      | maj, min when maj = negative_int ->
+          decode_unsigned_int min tail >>= fun (`Int i, tail) ->
+          (`Int ((i * -1) - 1), tail)
+      | maj, min when maj = byte_string ->
+          decode_bytes min tail >>= fun (l, tail) ->
+          (`ByteString (Bytes.of_seq (List.to_seq l)), tail)
+      | maj, min when maj = text_string ->
+          decode_bytes min tail >>= fun (l, tail) ->
+          (`TextString (String.of_seq (List.to_seq l)), tail)
       | maj, min when maj = array -> decode_array decode min tail
       | maj, min when maj = map -> decode_map decode min tail
       | _ -> Error "invalid header")

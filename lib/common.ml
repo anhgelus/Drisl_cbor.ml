@@ -46,3 +46,10 @@ let rec to_string data =
         v ""
   | `Bool v -> Bool.to_string v
   | `Null -> "null"
+
+module Result = struct
+  type ('a, 'b) t = ('a, 'b) result
+
+  let return x = Ok x
+  let ( >>= ) m f = match m with Ok x -> Ok (f x) | Error s -> Error s
+end
