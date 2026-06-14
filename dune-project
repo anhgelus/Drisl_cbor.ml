@@ -20,5 +20,6 @@
  (synopsis "Encode and decode DRISL-CBOR")
  (description "Lightweight DRISL-CBOR library. (Do not support tags and CID yet.)")
  (depends ocaml)
+ (allow_empty)
  (tags
   ("cbor" "ipfs" "dasl" "drisl" "cbor-library", "atproto")))
