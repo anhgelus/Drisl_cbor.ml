@@ -12,12 +12,23 @@ let bytes_to_string b =
     (fun acc c -> Printf.sprintf "%s%.2x" acc (int_of_char c))
     "" b
 
-let do_test exp res =
-  let exp = to_bytes exp in
-  let res = encode res in
+let do_test a b =
+  let exp = to_bytes a in
+  let res = encode b in
   if exp <> res then
     failwith
-      (String.cat " " (bytes_to_string res) |> String.cat (bytes_to_string exp))
+      (Printf.sprintf "%s %s" (bytes_to_string exp) (bytes_to_string res));
+  match decode exp with
+  | Ok (v, s) when v = b && Seq.is_empty s -> ()
+  | Ok (v, s) when v = b -> failwith "rest is not empty"
+  | Ok (v, s) ->
+      failwith
+        (Printf.sprintf "cannot decode %s (rest: %s) into %s, got %s"
+           (bytes_to_string exp)
+           (bytes_to_string $ Bytes.of_seq s)
+           (to_string b) (to_string v))
+  | Error v ->
+      failwith (Printf.sprintf "cannot decode %s: %s" (bytes_to_string exp) v)
 
 let () =
   for i = 0 to 23 do
