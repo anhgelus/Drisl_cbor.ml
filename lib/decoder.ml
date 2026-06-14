@@ -31,7 +31,33 @@ let decode_unsigned_int v seq =
       Ok (`Int (Int64.to_int $ Bytes.get_int64_be (Bytes.of_seq v) 0), seq)
   | _ -> Error "invalid int"
 
-let decode b =
+let rec decode_array_res decode seq acc i =
+  match i with
+  | 0 -> Ok (List.rev acc, seq)
+  | n -> (
+      match decode (Bytes.of_seq seq) with
+      | Ok (v, rest) -> decode_array_res decode rest (v :: acc) (i - 1)
+      | Error v -> Error v)
+
+let decode_array decode v seq =
+  match decode_unsigned_int v seq with
+  | Ok (`Int size, rest) -> decode_array_res decode seq [] size
+  | Error v -> Error v
+
+let rec decode_bytes_rec seq acc i =
+  match i with
+  | 0 -> Ok (List.rev acc, seq)
+  | n -> (
+      match Seq.uncons seq with
+      | Some (h, t) -> decode_bytes_rec t (h :: acc) (i - 1)
+      | None -> Error "not enought bytes")
+
+let decode_bytes v seq =
+  match decode_unsigned_int v seq with
+  | Ok (`Int size, rest) -> decode_bytes_rec rest [] size
+  | Error v -> Error v
+
+let rec decode b =
   let seq = Bytes.to_seq b in
   match Seq.uncons seq with
   | Some (h, t) -> (
@@ -40,6 +66,14 @@ let decode b =
       | maj, v when maj = negative_int -> (
           match decode_unsigned_int v t with
           | Ok (`Int i, seq) -> Ok (`Int ((i * -1) - 1), seq)
-          | s -> s)
+          | Error s -> Error s)
+      | maj, v when maj = byte_string -> (
+          match decode_bytes v t with
+          | Ok (l, seq) -> Ok (`ByteString (Bytes.of_seq (List.to_seq l)), seq)
+          | Error s -> Error s)
+      | maj, v when maj = text_string -> (
+          match decode_bytes v t with
+          | Ok (l, seq) -> Ok (`TextString (String.of_seq (List.to_seq l)), seq)
+          | Error s -> Error s)
       | _ -> Error "invalid header")
   | None -> Error "no data"
